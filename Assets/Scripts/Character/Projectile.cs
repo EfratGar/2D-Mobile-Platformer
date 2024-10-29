@@ -28,11 +28,6 @@ public class Projectile : MonoBehaviour
 
         float movementChange = speed * Time.deltaTime * direction;
         transform.Translate(movementChange, 0, 0);
-
-        if (IsOnScreen(transform.position))
-        {
-            Invoke("Deactivate", explodeCooldown);
-        }
     }
 
     private void OnTriggerEnter2D(Collider2D collision)
@@ -41,9 +36,13 @@ public class Projectile : MonoBehaviour
         {
             alreadyHit = true;
             boxCollider.enabled = false;
-            anim.SetTrigger("explode");
 
-            Invoke("Deactivate", 0.5f);
+            anim.SetTrigger("explode");
+            Invoke("Deactivate", explodeCooldown);
+        }
+        else if (collision.tag == "Door")
+        {
+            Deactivate();
         }
 
         IDamagable damagable = collision.gameObject.GetComponent<IDamagable>();
@@ -68,15 +67,4 @@ public class Projectile : MonoBehaviour
     {
         gameObject.SetActive(false);
     }
-    public static bool IsOnScreen(Vector3 position)
-    {
-        var camera = Camera.current;
-        if (!camera)
-        {
-            return false;
-        }
-        var screenPoint = Camera.current.WorldToViewportPoint(position);
-        return screenPoint.z > 0 && screenPoint.x > 0 && screenPoint.x < 1 && screenPoint.y > 0 && screenPoint.y < 1;
-    }
-
 }

@@ -2,13 +2,14 @@ using Cainos.PixelArtPlatformer_VillageProps;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Rendering.Universal;
 
 public class Scientist : PlayableCharacter
 {
-    // Start is called before the first frame update
+    [SerializeField] float interactionRange;
+
     public override void SpecialAbility()
     {
-        float interactionRange = 0.5f;
 
         Collider2D[] nearbyColliders = Physics2D.OverlapCircleAll(transform.position, interactionRange);
 
@@ -18,19 +19,21 @@ public class Scientist : PlayableCharacter
             if (chest != null && chest.IsOpened == false)
             {
                 chest.IsOpened = true;
-                break;
             }
+
+            LightSource CeilingLight = collider.GetComponent<LightSource>(); 
+            if (CeilingLight != null)
+            {
+                CeilingLight.ToggleLight(); 
+            }
+
+            KeyCollectible keyCollectible = collider.GetComponent<KeyCollectible>();
+            if (keyCollectible != null)
+            {
+                keyCollectible.CollectKey();
+            }
+
         }
-    }
-
-    new
-
-         // Update is called once per frame
-         void Update()  // move to base
-    {
-        base.Update();
-        playerMovement.SetSpeed(5);
-        playerMovement.SetjumpForce(5);
     }
 }
 

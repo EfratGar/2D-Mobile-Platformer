@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using TMPro;
 
 public class Game : MonoBehaviour
 {
@@ -8,6 +9,8 @@ public class Game : MonoBehaviour
     int currentCharacter;
 
     [SerializeField] private HealthBar healthBar;
+    [SerializeField] private TextMeshProUGUI gameOverText;
+    [SerializeField] private UnityEngine.UI.Image gameOverBackground;
 
     void Awake()
     {
@@ -29,7 +32,7 @@ public class Game : MonoBehaviour
         {
             SwitchCharacter();
         }
-        if (Input.GetKey(KeyCode.Space))
+        if (Input.GetKeyDown(KeyCode.Space))
         {
             GetCurrentActiveCharacter().SpecialAbility();
         }
@@ -46,7 +49,8 @@ public class Game : MonoBehaviour
 
         if (GameCharacters.Count == 0) 
         {
-            Debug.Log("Game Over!!!!!!");
+            gameOverBackground.gameObject.SetActive(true);
+            gameOverText.gameObject.SetActive(true);
             return;
         }
 

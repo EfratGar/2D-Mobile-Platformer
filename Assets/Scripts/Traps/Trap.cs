@@ -5,11 +5,13 @@ using UnityEngine;
 public abstract class Trap : MonoBehaviour, IDamagable
 {
     [SerializeField] private LayerMask whatIDamage;
-    [SerializeField] private int howMuchDamage;
+    [SerializeField] protected int howMuchDamage;
 
-    [SerializeField] private float maxHp;
-    private float currentHp;
-    private Game game;
+    [SerializeField] protected float maxHp;
+    protected float currentHp;
+    protected Game game;
+    [SerializeField] float distanceToCharacter;
+    private Animator anim;
 
     private void Awake()
     {
@@ -20,7 +22,7 @@ public abstract class Trap : MonoBehaviour, IDamagable
             Debug.LogError("Game object not found! Make sure there is a Game object in the scene.");
         }
     }
-    void Start()
+    public void Start()
     {
         currentHp = maxHp;
         game = FindObjectOfType<Game>();
@@ -32,28 +34,19 @@ public abstract class Trap : MonoBehaviour, IDamagable
 
     public void OnTriggerEnter2D(Collider2D collision)
     {
+        PlayableCharacter character = collision.GetComponent<PlayableCharacter>();
         PlayableCharacter activeCharacter = game.GetCurrentActiveCharacter();
 
-        if (activeCharacter == null)
-        {
-            Debug.LogError("Active character is null! Check your Game class.");
-            return;
-        }
-
-        float distanceToCharacter = Vector3.Distance(transform.position, activeCharacter.transform.position);
-
-        if (distanceToCharacter < 5f)  // use serilized field
+        if (activeCharacter != null && character != null)
         {
             Debug.Log("Character is taking damage: " + activeCharacter.characterName);
-            activeCharacter.TakeDamage(howMuchDamage);  // use applyDamage
+            activeCharacter.TakeDamage(howMuchDamage);
         }
         else
         {
             Debug.Log("Character is too far to take damage.");
         }
-
     }
-
 
     public void TakeDamage(float howMuch)
     {
@@ -63,8 +56,13 @@ public abstract class Trap : MonoBehaviour, IDamagable
         {
             Die();
         }
-
+        else
+        {
+            Debug.Log("Trap took damage, remaining HP: " + currentHp);
+        }
     }
+
+
 
     public void Die()
     {

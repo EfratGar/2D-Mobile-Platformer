@@ -7,9 +7,15 @@ public class Warrior : PlayableCharacter
     [SerializeField] private float attackCooldown;
     [SerializeField] private Transform firePoint;
     [SerializeField] private GameObject[] fireballs;
+    private AudioSource fireballSound;
     private float coolDownTimer = Mathf.Infinity;
     int fireballIndex = 0;
 
+    new private void Start()
+    {
+        base.Start();
+        fireballSound = GameObject.Find("FireballSound").GetComponent<AudioSource>();
+    }
     public override void SpecialAbility()
     {
         if (canAttack())
@@ -26,16 +32,8 @@ public class Warrior : PlayableCharacter
         return isGrounded && !isCoolDown;
     }
 
-
-    new
-
-        // Update is called once per frame
-        void Update()
+    void Update()
     {
-        base.Update();
-        playerMovement.SetSpeed(7); // move to constants
-        playerMovement.SetjumpForce(7);
-
         coolDownTimer += Time.deltaTime;
     }
 
@@ -50,6 +48,8 @@ public class Warrior : PlayableCharacter
             fireballs[fireballIndex].transform.position = firePoint.position;
             fireballs[fireballIndex].SetActive(true);
             fireballs[fireballIndex].GetComponent<Projectile>().StartShooting(Mathf.Sign(transform.localScale.x));
+
+            fireballSound.Play();
         }
     }
 

@@ -10,6 +10,12 @@ namespace Cainos.PixelArtPlatformer_VillageProps
         [FoldoutGroup("Reference")]
         public Animator animator;
 
+        [FoldoutGroup("Reference")]
+        [SerializeField] public GameObject Key;
+
+        [FoldoutGroup("Reference")]
+        private AudioSource ChestOpeningSound;
+
         [FoldoutGroup("Runtime"), ShowInInspector, DisableInEditMode]
         public bool IsOpened
         {
@@ -18,11 +24,21 @@ namespace Cainos.PixelArtPlatformer_VillageProps
             {
                 isOpened = value;
                 animator.SetBool("IsOpened", isOpened);
+
+                if (isOpened)
+                {
+                    ShowTreasure();
+                }
             }
         }
+        private void Start()
+        {
+            ChestOpeningSound = GameObject.Find("ChestOpeningSound").GetComponent<AudioSource>();
+        }
+
         private bool isOpened;
 
-        [FoldoutGroup("Runtime"),Button("Open"), HorizontalGroup("Runtime/Button")]
+        [FoldoutGroup("Runtime"), Button("Open"), HorizontalGroup("Runtime/Button")]
         public void Open()
         {
             IsOpened = true;
@@ -33,5 +49,19 @@ namespace Cainos.PixelArtPlatformer_VillageProps
         {
             IsOpened = false;
         }
+
+        private void ShowTreasure()
+        {
+            if (Key != null)
+            {
+                Key.SetActive(true); 
+            }
+
+            if (ChestOpeningSound != null)
+            {
+                ChestOpeningSound.Play(); 
+            }
+        }
     }
+    
 }

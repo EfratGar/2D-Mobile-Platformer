@@ -9,6 +9,10 @@ public class Saw : Trap
     private bool movingLeft;
     private float leftEdge;
     private float rightEdge;
+
+    [SerializeField] private AudioSource sawAudioSource; 
+    [SerializeField] private float maxVolumeDistance = 3f; 
+    [SerializeField] private float minVolumeDistance = 10f;
     private void Awake()
     {
         leftEdge = transform.position.x - movementDistance;
@@ -35,6 +39,31 @@ public class Saw : Trap
             }
             else
                 movingLeft = true;
+        }
+
+        AdjustVolumeBasedOnDistance();
+    }
+
+    private void AdjustVolumeBasedOnDistance()
+    {
+        PlayableCharacter activeCharacter = FindObjectOfType<Game>().GetCurrentActiveCharacter();
+
+        if (activeCharacter == null) return;
+
+        float distance = Vector3.Distance(transform.position, activeCharacter.transform.position);
+
+        if (distance <= maxVolumeDistance)
+        {
+            sawAudioSource.volume = 1f; 
+        }
+        else if (distance >= minVolumeDistance)
+        {
+            sawAudioSource.volume = 0f; 
+        }
+        else
+        {
+            float t = 1 - ((distance - maxVolumeDistance) / (minVolumeDistance - maxVolumeDistance));
+            sawAudioSource.volume = Mathf.Lerp(0f, 1f, t);
         }
     }
 

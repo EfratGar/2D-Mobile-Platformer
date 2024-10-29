@@ -17,6 +17,8 @@ public class KnightEnemy : MonoBehaviour, IDamagable
 
     private Animator anim;
     [SerializeField] private float attackCooldown;
+    private AudioSource KnightSwordSlash;
+    private AudioSource KnightGhostSound;
     [SerializeField] private int damage;
     [SerializeField] private float range;
     [SerializeField] private float colliderDistance;
@@ -37,6 +39,8 @@ public class KnightEnemy : MonoBehaviour, IDamagable
     private void Start()
     {
         game = FindObjectOfType<Game>();
+        KnightSwordSlash = GameObject.Find("KnightSwordSlash").GetComponent<AudioSource>();
+        KnightGhostSound = GameObject.Find("KnightGhostSound").GetComponent<AudioSource>();
     }
 
     public void OnTriggerEnter2D(Collider2D collision)  // Thats duplicates DamageCharacter
@@ -51,10 +55,11 @@ public class KnightEnemy : MonoBehaviour, IDamagable
 
         float distanceToCharacter = Vector3.Distance(transform.position, activeCharacter.transform.position);
 
-        if (distanceToCharacter < 4f)
+        if (distanceToCharacter < 4f && !CharacterIsHidden())
         {
             Debug.Log("Character is taking damage: " + activeCharacter.characterName);
             anim.SetTrigger("attack");
+            KnightSwordSlash.Play();
         }
         else
         {
@@ -98,30 +103,47 @@ public class KnightEnemy : MonoBehaviour, IDamagable
     {
         coolDownTimer += Time.deltaTime;
 
-        //Attack only if player is in sight
-        if (CharacterInSight())
+        if (coolDownTimer >= attackCooldown)
         {
-            if (coolDownTimer >= attackCooldown)
-            {
-                coolDownTimer = 0;
-                
-            }
+            coolDownTimer = 0;
+        }
+        AdjustGhostSoundVolume();
+    }
+    private void AdjustGhostSoundVolume()
+    {
+        PlayableCharacter activeCharacter = game.GetCurrentActiveCharacter();
+
+        if (activeCharacter != null)
+        {
+            float distanceToCharacter = Vector3.Distance(transform.position, activeCharacter.transform.position);
+
+            float maxDistance = 50f; 
+            float minDistance = 3f;   
+
+            float volume = Mathf.Clamp01(1 - (distanceToCharacter - minDistance) / (maxDistance - minDistance));
+
+            KnightGhostSound.volume = volume;
         }
     }
 
     private bool CharacterInSight()
     {
-        // simplify the hell of this
-        // Use BoxCast instead of BoxCastAll
-        RaycastHit2D[] hits = Physics2D.BoxCastAll(knightBoxCollider.bounds.center + transform.right * range * transform.localScale.x * colliderDistance,
-            new Vector3(knightBoxCollider.bounds.size.x * range, knightBoxCollider.bounds.size.y, knightBoxCollider.bounds.size.z), 0, Vector2.left, 0, characterLayer);
+        Vector3 boxCenter = knightBoxCollider.bounds.center + transform.right * range * transform.localScale.x * colliderDistance;
+        Vector3 boxSize = new Vector3(knightBoxCollider.bounds.size.x * range, knightBoxCollider.bounds.size.y, knightBoxCollider.bounds.size.z);
+
+        RaycastHit2D[] hits = Physics2D.BoxCastAll(boxCenter, boxSize, 0, Vector2.left, 0, characterLayer);
 
         foreach (RaycastHit2D hit in hits)
         {
-            PlayableCharacter character = hit.collider.GetComponent<PlayableCharacter>();
-            if (character != null)
+            IHideable hideableCharacter = hit.collider.GetComponent<IHideable>();
+            if (hideableCharacter != null && hideableCharacter.IsHiding)
             {
-                return true;
+                continue;
+            }
+
+            if (hit.collider.GetComponent<PlayableCharacter>() != null)
+            {
+                return true; 
             }
         }
 
@@ -129,24 +151,21 @@ public class KnightEnemy : MonoBehaviour, IDamagable
     }
 
 
+
+    private bool CharacterIsHidden()
+    {
+        IHideable activeCharacter = game.GetCurrentActiveCharacter() as IHideable;
+        return activeCharacter != null && activeCharacter.IsHiding;
+    }
+
     private void DamageCharacter()
     {
-        if (CharacterInSight()) // thats double check for charachter in sight
+        PlayableCharacter activeCharacter = game.GetCurrentActiveCharacter();
+
+        if (activeCharacter != null)
         {
-
-            RaycastHit2D[] hits = Physics2D.BoxCastAll(knightBoxCollider.bounds.center + transform.right * range * transform.localScale.x * colliderDistance,
-                new Vector3(knightBoxCollider.bounds.size.x * range, knightBoxCollider.bounds.size.y, knightBoxCollider.bounds.size.z), 0, Vector2.left, 0, characterLayer);
-
-            foreach (RaycastHit2D hit in hits)
-            {
-                PlayableCharacter character = hit.collider.GetComponent<PlayableCharacter>();
-                if (character != null)
-                {
-                    PlayableCharacter activeCharacter = game.GetCurrentActiveCharacter();
-                    activeCharacter.TakeDamage(damage);
-                    Debug.Log(activeCharacter.characterName + " Got hit");
-                }
-            }
+            activeCharacter.TakeDamage(damage);
+            Debug.Log(activeCharacter.characterName + " took " + damage + " damage.");
         }
     }
 

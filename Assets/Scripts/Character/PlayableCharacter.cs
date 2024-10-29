@@ -8,17 +8,22 @@ public abstract class PlayableCharacter : MonoBehaviour, IDamagable
 {
     [SerializeField] public string characterName;
 
+
     [Header("Health")]
     [SerializeField] public float maxHp = 100f;
     public float currentHp { get; private set; }
 
     [Header("Movement")]
     [SerializeField] protected PlayerMovement playerMovement;
+    [SerializeField] private int characterSpeed;
+    [SerializeField] private int characterJumpForce;
 
     [Header("Sprite")]
     [SerializeField] protected Sprite characterSprite;
     [Header("Animator")]
     [SerializeField] protected RuntimeAnimatorController characterAnimator;
+    private AudioSource MalePainSound;
+    private AudioSource FemalePainSound;
     [Header("Character")]
     [SerializeField] protected Vector3 characterScale = new Vector3(1, 1, 1);
     [SerializeField] protected float characterAlpha = 1f;
@@ -31,14 +36,18 @@ public abstract class PlayableCharacter : MonoBehaviour, IDamagable
 
 
     private BoxCollider2D boxCollider;
-    private SpriteRenderer spriteRenderer;
+    protected SpriteRenderer spriteRenderer;
+    private Color characterColor;
+    bool InFlashing = false;
+
     private bool dead;
 
-    public Game game;
+    private Game game;
 
-    private void Start()
+    protected void Start()
     {
         game = FindObjectOfType<Game>();
+
     }
 
 
@@ -47,6 +56,9 @@ public abstract class PlayableCharacter : MonoBehaviour, IDamagable
         playerMovement = GetComponent<PlayerMovement>();
         spriteRenderer = GetComponent<SpriteRenderer>();
         boxCollider = GetComponent<BoxCollider2D>();
+        MalePainSound = GameObject.Find("MalePainSound").GetComponent<AudioSource>();
+        FemalePainSound = GameObject.Find("FemalePainSound").GetComponent<AudioSource>();
+        characterColor = spriteRenderer.color;
 
 
         currentHp = maxHp;
@@ -63,12 +75,24 @@ public abstract class PlayableCharacter : MonoBehaviour, IDamagable
 
     public void TakeDamage(float howMuch)
     {
+        if (InFlashing)
+        {
+            return;
+        }
         currentHp = Mathf.Clamp(currentHp - howMuch, 0, maxHp);
 
         if (currentHp > 0)
         {
             playerMovement.GetAnimator().SetTrigger("hurt");
             StartCoroutine(inVulnerability());
+            if (characterName == "Warrior" || characterName == "Spiritual")
+            {
+                MalePainSound.Play();
+            }
+            else
+            {
+                FemalePainSound.Play();
+            }
         }
         else
         {
@@ -87,7 +111,7 @@ public abstract class PlayableCharacter : MonoBehaviour, IDamagable
     public abstract void SpecialAbility();
     void ApplyDamage(IDamagable target)
     {
-        
+
     }
 
     public void Die()
@@ -104,9 +128,13 @@ public abstract class PlayableCharacter : MonoBehaviour, IDamagable
     {
         // Waiting for animation ending
         yield return new WaitForSeconds(1.5f);
-
-        gameObject.SetActive(false); // Character is hidden after death
+        if (game == null)
+        {
+            Debug.LogError("game is NULL@@@!!! just before game is needed");
+            yield break;
+        }
         game.SwitchCharacter();
+        //gameObject.SetActive(false); // Character is hidden after death
     }
 
     private void AdjustCollider()
@@ -118,28 +146,31 @@ public abstract class PlayableCharacter : MonoBehaviour, IDamagable
         playerMovement.body.velocity = currentVelocity;
     }
 
-    private void OnEnable()
+    protected void OnEnable()
     {
         if (playerMovement == null)
         {
             return;
         }
 
+        characterColor.a = characterAlpha;
+        spriteRenderer.color = characterColor;
+        InFlashing = false;
+
         spriteRenderer.sprite = characterSprite;
         playerMovement.SetAnimator(characterAnimator);
         transform.localScale = characterScale;
         AdjustCollider();
-        Color newColor = spriteRenderer.color;
-        newColor.a = characterAlpha;
-        spriteRenderer.color = newColor;
-        //?
+
+        playerMovement.SetSpeed(characterSpeed);
+        playerMovement.SetjumpForce(characterJumpForce);
 
     }
 
-    private IEnumerator inVulnerability() // fix
+    private IEnumerator inVulnerability()
     {
+        InFlashing = true;
         Color currentColor = spriteRenderer.color;
-        Physics2D.IgnoreLayerCollision(10, 11, true);
         for (int i = 0; i < numberOfFlashes; i++)
         {
             spriteRenderer.color = new Color(1, 0, 0, 0.5f);
@@ -147,14 +178,28 @@ public abstract class PlayableCharacter : MonoBehaviour, IDamagable
             spriteRenderer.color = currentColor;
             yield return new WaitForSeconds(iFramesDuration / (numberOfFlashes * 2));
         }
+        InFlashing = false;
 
-        Physics2D.IgnoreLayerCollision(10, 11, false);
     }
-    public void Update()
+
+    protected virtual IEnumerator FadeAlpha(float targetAlpha)
     {
-        if (Input.GetKeyDown(KeyCode.E))
-            TakeDamage(10);
+        float currentAlpha = spriteRenderer.color.a;
+        float duration = 0.5f;
+        float elapsedTime = 0;
+
+        while (elapsedTime < duration)
+        {
+            elapsedTime += Time.deltaTime;
+            float newAlpha = Mathf.Lerp(currentAlpha, targetAlpha, elapsedTime / duration);
+            Color newColor = spriteRenderer.color;
+            newColor.a = newAlpha;
+            spriteRenderer.color = newColor;
+
+            yield return null;
+        }
     }
+
 
     public bool CharacterIsAlive()
     {
